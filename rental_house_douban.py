@@ -4,15 +4,18 @@ import smtplib
 from email.mime.text import MIMEText
 import random
 
-mailto_list = ['XXXXXXXXXX@qq.com', 'XXXXXXXXXX@qq.com']
+
+# nohup stdbuf -oL python group_api_topics.py &
 mail_host = "smtp.qq.com"
-mail_user = "XXXXXXXXXX@qq.com"
-mail_pass = "XXXXXXXXXX"
+mail_user = "XXXXXX@qq.com"  # 此处为发送邮件用户
+mailto_list = [mail_user] # 此处为接收邮件用户
+mail_pass = "XXXX" #此处为发送邮件用户qq邮箱授权码，授权码获取参考： https://service.mail.qq.com/cgi-bin/help?subtype=1&id=28&no=1001256
 mail_postfix = "qq.com"
 
 sended_dict = {}
 px_pool = []
 
+# 发送邮件到指定邮箱，其中mailuser 为发送邮件邮箱账号， mailto_list 为接收邮件账户列表
 def send_mail(to_list, sub, content):
     me = "Server Monitor" + "<" + mail_user + "@" + mail_postfix + ">"
     msg = MIMEText(content, _subtype='plain', _charset='gb2312')
@@ -30,7 +33,7 @@ def send_mail(to_list, sub, content):
         print str(e)
         return False
 
-
+# 由于豆瓣api限制，每小时只能发送100个请求，此函数为程序加载不同Https代理，每次请求随机选择不同的https代理
 def load_proxy_pool():
     for l in open('./proxy_pool','r').readlines():
         px = l.split('\n')[0].split('\t')
@@ -38,14 +41,16 @@ def load_proxy_pool():
     print px_pool
 
 
+
+#此函数发送 get 请求， params为请求参数，指定从何处开始，每次请求要求返回多少条消息
+#返回消息为json格式，具体属性名称及格式参考 https://www.douban.com/group/topic/33507002/
+
 def get_topic_list(groupids= ['beijingzufang']):
-
-
 
     headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '
                              'AppleWebKit/537.36 (KHTML, like Gecko) '
                              'Chrome/52.0.2743.116 Safari/537.36'}
-
+    params = {'start': 0, 'count': 150}
     print '-------------------'
     topics = []
     for id in groupids:
@@ -53,11 +58,12 @@ def get_topic_list(groupids= ['beijingzufang']):
         r = None
         while flag:
             proxies = {'https': random.choice(px_pool)}
-            print proxies
+            print 'groupid: {}, proxy:{}'.format(id, proxies)
             try:
                 r = requests.get('https://api.douban.com/v2/group/{}/topics'.format(id),
                                  headers = headers,
-                                 proxies = proxies)
+                                 proxies = proxies,
+                                 params = params)
                 if r.status_code == 200:
                     flag = False
                 else:
@@ -67,9 +73,13 @@ def get_topic_list(groupids= ['beijingzufang']):
                 print str(e)
 
         data = json.loads(r.text)
+        print data['topics'][0]['updated']
+        print data['topics'][-1]['updated']
         topics.extend(data['topics'])
+    print '-------------------'
     return topics
 
+# 搜索topic内容中是否包含 指定关键字的topic
 def content_search(topic, key_words = []):
     flag = False
     for k in key_words:
@@ -81,7 +91,7 @@ def content_search(topic, key_words = []):
         return topic['share_url']
     else:
         return
-
+# 遍历所有在topics 中的topic， 找到含有关键词列表keywords 的所有topic 并返回
 def related_houses(topics, keywords = []):
     houses = []
     for topic in topics:
@@ -90,6 +100,7 @@ def related_houses(topics, keywords = []):
             houses.append(url)
     return houses
 
+# 此函数为检测相同的topic是否已发送过， 如果发送过则不发送， 没有发送过则发送并在发送过的字典中添加该topic
 def house_filter(houses):
     filterd_hs = []
     for h in houses:
@@ -102,15 +113,20 @@ def house_filter(houses):
             sended_urls.close()
     return filterd_hs
 
+# 此函数为加载是否历史发送过的topic 列表，初始时为空， 每次发送都重新写入
 def recovery_sendedurls():
-    strs = eval(open('./sended_urls', 'r').readline())
-    if strs is not None:
-        for i in strs:
-            sended_dict[i] = ''
+    content = open('./sended_urls', 'r').readline()
+    if content != '':
+        strs = eval()
+        if strs is not None :
+            for i in strs:
+                sended_dict[i] = ''
     print sended_dict.keys()
 
-
-def topic_monitor(gap = 50, keywords = [], groupids = []):
+# 此函数为监控的主函数，每隔gap秒对小组列表内的小组发送一次请求，
+# 如果返回结果中不含有满足要求topic， 即len(f_houses)=0 则不发送邮件
+# 如果含有满足要求的topic 则发送邮件
+def topic_monitor(gap = 420, keywords = [], groupids = []):
     while True:
         topics = get_topic_list(groupids = groupids)
         houses = related_houses(topics, keywords)
@@ -118,11 +134,11 @@ def topic_monitor(gap = 50, keywords = [], groupids = []):
         if len(f_houses)>0:
             print f_houses
             send_mail(mailto_list, 'For your information, House!', str(f_houses))
-        time.sleep(random.randint(gap,gap+20))
+        time.sleep(gap)
 
 if __name__ == '__main__':
-    keywords = ['柳浪', '肖家河', '上地', '西北旺', '农大南路']
-    groupids = ['beijingzufang', 'opking', '279962','sweethome','zhufang','26926']
+    keywords = ['柳浪', '肖家河', '上地', '西北旺', '农大南路','农大西','永旺','大牛坊']
+    groupids = ['fangzi','beijingzufang', 'opking', '279962','sweethome','zhufang','26926']
     recovery_sendedurls()
     load_proxy_pool()
     topic_monitor(keywords=keywords, groupids = groupids)
