@@ -138,7 +138,8 @@ def topic_monitor(gap = 420, keywords = [], groupids = []):
 
 if __name__ == '__main__':
     keywords = ['柳浪', '肖家河', '上地', '西北旺', '农大南路','农大西','永旺','大牛坊']
-    groupids = ['fangzi','beijingzufang', 'opking', '279962','sweethome','zhufang','26926']
+    groupids = ['fangzi']
+    # groupids = ['fangzi','beijingzufang', 'opking', '279962','sweethome','zhufang','26926']
     recovery_sendedurls()
     load_proxy_pool()
     topic_monitor(keywords=keywords, groupids = groupids)
