@@ -117,7 +117,7 @@ def house_filter(houses):
 def recovery_sendedurls():
     content = open('./sended_urls', 'r').readline()
     if content != '':
-        strs = eval()
+        strs = eval(content)
         if strs is not None :
             for i in strs:
                 sended_dict[i] = ''
