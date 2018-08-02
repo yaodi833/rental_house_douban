@@ -6,10 +6,10 @@ import random
 
 
 # nohup stdbuf -oL python group_api_topics.py &
+mailto_list = ['296840029@qq.com', '330979050@qq.com']
 mail_host = "smtp.qq.com"
-mail_user = "XXXXXX@qq.com"  # 此处为发送邮件用户
-mailto_list = [mail_user] # 此处为接收邮件用户
-mail_pass = "XXXX" #此处为发送邮件用户qq邮箱授权码，授权码获取参考： https://service.mail.qq.com/cgi-bin/help?subtype=1&id=28&no=1001256
+mail_user = "330979050@qq.com"
+mail_pass = "****************"
 mail_postfix = "qq.com"
 
 sended_dict = {}
@@ -77,6 +77,9 @@ def get_topic_list(groupids= ['beijingzufang']):
         print data['topics'][-1]['updated']
         topics.extend(data['topics'])
     print '-------------------'
+    print 'Save json files'
+    json_obj = {"data": topics}
+    save_json_file(json_obj)
     return topics
 
 # 搜索topic内容中是否包含 指定关键字的topic
@@ -135,6 +138,12 @@ def topic_monitor(gap = 420, keywords = [], groupids = []):
             print f_houses
             send_mail(mailto_list, 'For your information, House!', str(f_houses))
         time.sleep(gap)
+
+def save_json_file(objs):
+    f = open('./results.json','w')
+    json.dump(objs, f)
+    f.close()
+
 
 if __name__ == '__main__':
     keywords = ['柳浪', '肖家河', '上地', '西北旺', '农大南路','农大西','永旺','大牛坊']
